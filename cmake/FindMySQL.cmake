@@ -297,8 +297,8 @@ else ()
   # there, pick "libmysqlclient" that in 5.5 and up is multithreaded
   # anyway (soft link "libmysqlclient_r" is not installed MySQL Server
   # 5.6 and Debian/Ubuntu and might go in 5.7 for all installs)
-  set(_dynamic_libs "mysqlclient_r" "mysqlclient")
-  set(_static_libs "libmysqlclient_r.a" "libmysqlclient.a")
+  set(_dynamic_libs "mysqlclient_r" "mysqlclient" "mariadbclient")
+  set(_static_libs "libmysqlclient_r.a" "libmysqlclient.a" "libmariadbclient.a")
   set(_static_lib_ext ".a")
 endif ()
 
