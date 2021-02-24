@@ -68,7 +68,7 @@ FLUFFOS_REPACK_TARBALL="$(echo "fluffos-repack-"*".tar.gz")"
 tmp_b="${FLUFFOS_REPACK_TARBALL##*-}"
 tmp_b="${tmp_b%%.*}"
 ARCH="${tmp_b}"
-VERSION="2019"
+VERSION="2019.20201121"
 
 case "${ARCH}" in
 "ppc64le")
