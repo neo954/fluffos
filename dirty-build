@@ -1,0 +1,17 @@
+#!/bin/bash
+rm -rf build
+mkdir build
+(
+	cd build &&
+	MYSQL_INCLUDE_DIR=/usr/include/mariadb \
+		cmake \
+		-DPACKAGE_DB=ON \
+		-DPACKAGE_DB_DEFAULT_DB=1 \
+		-DPACKAGE_DB_MYSQL=1 \
+		-DPACKAGE_DB_POSTGRESQL= \
+		-DPACKAGE_DB_SQLITE= \
+		-DMARCH_NATIVE=OFF \
+		..
+	make -j4
+	make install
+)
