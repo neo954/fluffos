@@ -1,0 +1,137 @@
+#!/bin/bash
+
+#
+# warn_if_bad		Put out warning message(s) if $1 has bad RC.
+#
+#	$1	0 (pass) or non-zero (fail).
+#	$2+	Remaining arguments printed only if the $1 is non-zero.
+#
+#	Incoming $1 is returned unless it is 0
+#
+function warn_if_bad()
+{
+	local -i rc="$1"
+	local script="${0##*/}"
+
+	# Ignore if no problems
+	[ "${rc}" -eq "0" ] && return 0
+
+	# Broken
+	shift
+	echo "${script}: $@" >&2
+	return "${rc}"
+}
+
+#
+# exit_if_bad		Put out error message(s) if $1 has bad RC.
+#
+#	$1	0 (pass) or non-zero (fail).
+#	$2+	Remaining arguments printed only if the $1 is non-zero.
+#
+#               Exits with 1 unless $1 is 0
+#
+function exit_if_bad()
+{
+	warn_if_bad "$@" || exit 1
+	return 0
+}
+
+TMP_DIR=""
+
+function internal_cleanup()
+{
+	[ -d "${TMP_DIR}" ] && rm -rf "${TMP_DIR}"
+}
+
+trap internal_cleanup EXIT
+
+TMP_DIR="$(mktemp -d "/tmp/${0##*/}.XXXXXXXX" 2>/dev/null)"
+exit_if_bad "$?" "Above listed required command(s) not found."
+
+# Main
+if [ -z "$1" ]
+then
+	echo "Usage: ${0##*/} <fluffos build directory>"
+	exit 0
+fi
+
+FLUFFOS_BUILD_DIRECTORY="$1"
+
+[ -d "${FLUFFOS_BUILD_DIRECTORY}" ]
+exit_if_bad "$?" "${FLUFFOS_BUILD_DIRECTORY} - Directory not found."
+[ -d "${FLUFFOS_BUILD_DIRECTORY}/bin" ]
+exit_if_bad "$?" "${FLUFFOS_BUILD_DIRECTORY}/bin - Directory not found."
+
+case "$HOSTTYPE" in
+"powerpc64")
+	ARCH="ppc64"
+	;;
+"powerpc64le")
+	ARCH="ppc64el"
+	;;
+"i"?"86")
+	ARCH="i386"
+	;;
+"x86_64")
+	ARCH="amd64"
+	;;
+*)
+i	exit_if_bad 1 "Non-supported build architecture - ${HOSTTYPE}"
+	;;
+esac
+
+FLUFFOS_REPACK_TARBALL="fluffos-repack-${ARCH}.tar.gz"
+
+umask 0022
+
+mkdir -p "${TMP_DIR}/repack"
+mkdir -p "${TMP_DIR}/repack/opt"
+mkdir -p "${TMP_DIR}/repack/opt/fluffos"
+mkdir -p "${TMP_DIR}/repack/opt/fluffos/include"
+mkdir -p "${TMP_DIR}/repack/opt/fluffos/std"
+mkdir -p "${TMP_DIR}/repack/opt/fluffos/std/fonts"
+mkdir -p "${TMP_DIR}/repack/opt/fluffos/www"
+install -o root -g root -m 0755 \
+	"${FLUFFOS_BUILD_DIRECTORY}/bin/driver" \
+	"${TMP_DIR}/repack/opt/fluffos"
+install -o root -g root -m 0755 \
+	"${FLUFFOS_BUILD_DIRECTORY}/bin/lpcc" \
+	"${TMP_DIR}/repack/opt/fluffos"
+install -o root -g root -m 0755 \
+	"${FLUFFOS_BUILD_DIRECTORY}/bin/portbind" \
+	"${TMP_DIR}/repack/opt/fluffos"
+for f in "${FLUFFOS_BUILD_DIRECTORY}/bin/include/"*
+do
+	[ -d "${f}" ] && continue
+	install -o root -g root -m 0644 \
+		"${f}" \
+		"${TMP_DIR}/repack/opt/fluffos/include"
+done
+for f in "${FLUFFOS_BUILD_DIRECTORY}/bin/std/"*
+do
+	[ -d "${f}" ] && continue
+	install -o root -g root -m 0644 \
+		"${f}" \
+		"${TMP_DIR}/repack/opt/fluffos/std"
+done
+for f in "${FLUFFOS_BUILD_DIRECTORY}/bin/std/fonts/"*
+do
+	[ -d "${f}" ] && continue
+	install -o root -g root -m 0644 \
+		"${f}" \
+		"${TMP_DIR}/repack/opt/fluffos/std/fonts"
+done
+for f in "${FLUFFOS_BUILD_DIRECTORY}/bin/www/"*
+do
+	[ -d "${f}" ] && continue
+	install -o root -g root -m 0644 \
+		"${f}" \
+		"${TMP_DIR}/repack/opt/fluffos/www"
+done
+
+( cd "${TMP_DIR}/repack" && tar cfz - *) >"${FLUFFOS_REPACK_TARBALL}"
+
+# Verification
+
+ls -lad "${FLUFFOS_REPACK_TARBALL}"
+tar tvfz "${FLUFFOS_REPACK_TARBALL}"
