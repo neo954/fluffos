@@ -92,9 +92,7 @@ sed -i -e 's/^Architecture: .*$/Architecture: '"${ARCH}"'/' \
 	-e '/^Description:/,$d' \
 	"${EXTRACT_DIR}/debian/control"
 cat <<-EOF >>"${EXTRACT_DIR}/debian/control"
-Description: FluffOS is an LPMUD driver, based on the last release of MudOS
- (v22.2b14), includes 10+ years of bug fixes and performance enhancement,
- with active support.
+Description: FluffOS is an LPMUD driver.
 EOF
 
 cat <<-EOF >"${EXTRACT_DIR}/debian/changelog"
