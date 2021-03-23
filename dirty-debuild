@@ -98,7 +98,7 @@ EOF
 cat <<-EOF >"${EXTRACT_DIR}/debian/changelog"
 fluffos (${VERSION:-0.0.1}-snap$(date '+%Y%m%d%H%M')) experimental; urgency=low
 
-  * Converted from .tgz format to .deb by alien version 8.95
+  * Converted from .tgz format to .deb by $(alien --version)
 
 
 
