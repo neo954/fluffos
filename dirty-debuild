@@ -49,22 +49,48 @@ TMP_DIR="$(mktemp -d "/tmp/${0##*/}.XXXXXXXX" 2>/dev/null)"
 exit_if_bad "$?" "Above listed required command(s) not found."
 
 # Main
-if [ -z "$1" ]
-then
-	echo "Usage: ${0##*/} <fluffos build directory>"
-	echo
-	echo "Examples:"
-	echo "  ${0##*/} build"
-	exit 0
-fi
+while [ "$#" -gt "0" ]
+do
+	case "$1" in
+	"-h"|"--help")
+		echo "Usage: ${0##*/} <fluffos build directory>"
+		echo
+		echo "Examples:"
+		echo "  ${0##*/} build"
+		exit 0
+		;;
+	"+"*)
+		VARIANTS="${1:1}"
+		;;
+	"--all-variants")
+		for v in mysql pgsql sqlite3 tiny
+		do
+			rm -rf build
+			fakeroot "${0}" "+${v}"
+		done
+		exit 0
+		;;
+	*)
+		FLUFFOS_BUILD_DIRECTORY="${1}"
+		;;
+	esac
+	shift
+done
 
 BASE_DIR="${0%/*}"
 
-FLUFFOS_BUILD_DIRECTORY="$1"
+if [ -z "${FLUFFOS_BUILD_DIRECTORY}" ]
+then
+	"${BASE_DIR}/dirty-build" "${VARIANTS}"
+	exit_if_bad "$?" "dirty-build failed."
+
+	FLUFFOS_BUILD_DIRECTORY="build"
+fi
+VARIANTS="$(cat "${FLUFFOS_BUILD_DIRECTORY}/VARIANTS")"
 "${BASE_DIR}/prep-tarball" "${FLUFFOS_BUILD_DIRECTORY}"
 exit_if_bad "$?" "prep-tarball failed."
 
-FLUFFOS_REPACK_TARBALL="$(echo "fluffos-repack-"*".tar.gz")"
+FLUFFOS_REPACK_TARBALL="$(echo "fluffos-${VARIANTS}-repack-"*".tar.gz")"
 tmp_b="${FLUFFOS_REPACK_TARBALL##*-}"
 tmp_b="${tmp_b%%.*}"
 ARCH="${tmp_b}"
@@ -82,8 +108,8 @@ case "${ARCH}" in
 	;;
 esac
 
-FLUFFOS_PREP_TARBALL="fluffos.tar.gz"
-EXTRACT_DIR="fluffos-${VERSION:-0.0.1}"
+FLUFFOS_PREP_TARBALL="fluffos-${VARIANTS}.tar.gz"
+EXTRACT_DIR="fluffos-${VARIANTS}-${VERSION:-0.0.1}"
 rm -rf "${EXTRACT_DIR}.orig" "${EXTRACT_DIR}"
 
 ln -s -f "${FLUFFOS_REPACK_TARBALL}" "${FLUFFOS_PREP_TARBALL}"
@@ -97,12 +123,37 @@ sed -i -e 's/^Architecture: .*$/Architecture: '"${ARCH}"'/' \
 	-e 's/^Maintainer: .*$/Maintainer: GONG Jie <neo@quux.me>/' \
 	-e '/^Description:/,$d' \
 	"${EXTRACT_DIR}/debian/control"
-cat <<-EOF >>"${EXTRACT_DIR}/debian/control"
-Description: FluffOS is an LPMUD driver.
-EOF
+case "${VARIANTS}" in
+"mysql")
+	cat <<-EOF >>"${EXTRACT_DIR}/debian/control"
+	Recommends: default-mysql-server | virtual-mysql-server
+	Conflicts: fluffos-pgsql, fluffos-sqlite3, fluffos-tiny
+	Description: FluffOS is an LPMUD driver (using MySQL)
+	EOF
+	;;
+"pgsql")
+	cat <<-EOF >>"${EXTRACT_DIR}/debian/control"
+	Recommends: postgresql
+	Conflicts: fluffos-mysql, fluffos-sqlite3, fluffos-tiny
+	Description: FluffOS is an LPMUD driver (using PostgreSQL)
+	EOF
+	;;
+"sqlite3")
+	cat <<-EOF >>"${EXTRACT_DIR}/debian/control"
+	Conflicts: fluffos-mysql, fluffos-pgsql, fluffos-tiny
+	Description: FluffOS is an LPMUD driver (using SQLite3)
+	EOF
+	;;
+"tiny")
+	cat <<-EOF >>"${EXTRACT_DIR}/debian/control"
+	Conflicts: fluffos-mysql, fluffos-pgsql, fluffos-sqlite3
+	Description: FluffOS is an LPMUD driver (compact version)
+	EOF
+	;;
+esac
 
 cat <<-EOF >"${EXTRACT_DIR}/debian/changelog"
-fluffos (${VERSION:-0.0.1}-snap$(date '+%Y%m%d%H%M')) experimental; urgency=low
+fluffos-${VARIANTS} (${VERSION:-0.0.1}-snap$(date '+%Y%m%d%H%M')) experimental; urgency=low
 
   * Converted from .tgz format to .deb by $(alien --version)
 
