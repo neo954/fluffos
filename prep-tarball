@@ -62,6 +62,11 @@ exit_if_bad "$?" "${FLUFFOS_BUILD_DIRECTORY} - Directory not found."
 [ -d "${FLUFFOS_BUILD_DIRECTORY}/bin" ]
 exit_if_bad "$?" "${FLUFFOS_BUILD_DIRECTORY}/bin - Directory not found."
 
+VARIANTS="$(cat "${FLUFFOS_BUILD_DIRECTORY}/VARIANTS")"
+
+[ -n "${VARIANTS}" ]
+exit_if_bad "$?" "${VARIANTS} - Not defined."
+
 case "$HOSTTYPE" in
 "powerpc64")
 	ARCH="ppc64"
@@ -80,7 +85,7 @@ i	exit_if_bad 1 "Non-supported build architecture - ${HOSTTYPE}"
 	;;
 esac
 
-FLUFFOS_REPACK_TARBALL="fluffos-repack-${ARCH}.tar.gz"
+FLUFFOS_REPACK_TARBALL="fluffos-${VARIANTS}-repack-${ARCH}.tar.gz"
 
 umask 0022
 
