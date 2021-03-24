@@ -1,6 +1,7 @@
 #!/bin/bash
 
 VARIANTS="${1:-tiny}"
+RET="0"
 
 case "${VARIANTS}" in
 "mysql")
@@ -56,6 +57,7 @@ case "${VARIANTS}" in
 		make -j4
 		make install
 	)
+	RET="$?"
 	;;
 "tiny")
 	rm -rf build
