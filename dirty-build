@@ -1,17 +1,86 @@
 #!/bin/bash
-rm -rf build
-mkdir build
-(
-	cd build &&
-	MYSQL_INCLUDE_DIR=/usr/include/mariadb \
+
+VARIANTS="${1:-tiny}"
+
+case "${VARIANTS}" in
+"mysql")
+	rm -rf build
+	mkdir build
+	(
+		cd build &&
+		MYSQL_INCLUDE_DIR=/usr/include/mariadb \
+			cmake \
+			-DPACKAGE_DB=ON \
+			-DPACKAGE_DB_DEFAULT_DB=1 \
+			-DPACKAGE_DB_MYSQL=1 \
+			-DPACKAGE_DB_POSTGRESQL= \
+			-DPACKAGE_DB_SQLITE= \
+			-DMARCH_NATIVE=OFF \
+			..
+		make -j4
+		make install
+	)
+	RET="$?"
+	;;
+"pgsql")
+	rm -rf build
+	mkdir build
+	(
+		cd build &&
 		cmake \
-		-DPACKAGE_DB=ON \
-		-DPACKAGE_DB_DEFAULT_DB=1 \
-		-DPACKAGE_DB_MYSQL=1 \
-		-DPACKAGE_DB_POSTGRESQL= \
-		-DPACKAGE_DB_SQLITE= \
-		-DMARCH_NATIVE=OFF \
-		..
-	make -j4
-	make install
-)
+			-DPACKAGE_DB=ON \
+			-DPACKAGE_DB_DEFAULT_DB=1 \
+			-DPACKAGE_DB_MYSQL= \
+			-DPACKAGE_DB_POSTGRESQL=1 \
+			-DPACKAGE_DB_SQLITE= \
+			-DMARCH_NATIVE=OFF \
+			..
+		make -j4
+		make install
+	)
+	RET="$?"
+	;;
+"sqlite3")
+	rm -rf build
+	mkdir build
+	(
+		cd build &&
+		cmake \
+			-DPACKAGE_DB=ON \
+			-DPACKAGE_DB_DEFAULT_DB=1 \
+			-DPACKAGE_DB_MYSQL= \
+			-DPACKAGE_DB_POSTGRESQL= \
+			-DPACKAGE_DB_SQLITE=1 \
+			-DMARCH_NATIVE=OFF \
+			..
+		make -j4
+		make install
+	)
+	;;
+"tiny")
+	rm -rf build
+	mkdir build
+	(
+		cd build &&
+		cmake \
+			-DPACKAGE_DB=OFF \
+			-DPACKAGE_DB_DEFAULT_DB= \
+			-DPACKAGE_DB_MYSQL= \
+			-DPACKAGE_DB_POSTGRESQL= \
+			-DPACKAGE_DB_SQLITE= \
+			-DMARCH_NATIVE=OFF \
+			..
+		make -j4
+		make install
+	)
+	RET="$?"
+	;;
+*)
+	echo "Usage: ${0##*/} <mysql|pgsql|sqlite3|tiny>"
+	exit 1
+	;;
+esac
+
+echo "${VARIANTS}" >"build/VARIANTS"
+
+exit "${RET}"
