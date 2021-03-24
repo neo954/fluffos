@@ -68,7 +68,13 @@ FLUFFOS_REPACK_TARBALL="$(echo "fluffos-repack-"*".tar.gz")"
 tmp_b="${FLUFFOS_REPACK_TARBALL##*-}"
 tmp_b="${tmp_b%%.*}"
 ARCH="${tmp_b}"
-VERSION="2019.20201121"
+VERSION="$(git describe --tags --abbrev=0)"
+VERSION="${VERSION//v/}"
+if [ -z "${VERSION}" ]
+then
+	warn_if_bad 1 "failed to get version number"
+	VERSION="2019.20201121"
+fi
 
 case "${ARCH}" in
 "ppc64le")
